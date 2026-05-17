@@ -66,29 +66,26 @@ auth.onAuthStateChanged(user => {
 });
 
 // ADD PROMISE
-function addPromise(){
+function addPromise() {
 
-  const input =
-    document.getElementById("promiseInput");
-
+  const input = document.getElementById("promiseInput");
   const text = input.value.trim();
 
-  if(!text) return;
+  if (!text) return;
+
+  const today = getToday();
 
   db.collection("users")
     .doc(currentUser.uid)
     .collection("promises")
     .add({
-
-      text:text,
-      streak:0,
-      completed:0,
-      createdAt:Date.now()
-
+      text: text,
+      streak: 0,
+      lastCompletedDate: "",   // important for streak logic
+      createdAt: Date.now()
     });
 
-  input.value="";
-
+  input.value = "";
 }
 
 // LOAD PROMISES
