@@ -1,77 +1,97 @@
-body {
-  margin: 0;
-  font-family: Arial;
-  background: #000;
-  color: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+body{
+  margin:0;
+  font-family:Arial;
+  background:#000;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
 }
 
-.container {
-  width: 380px;
-  background: #0a0a0a;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 0 20px #ffd00033;
+.container{
+  width:360px;
+  background:#111;
+  padding:20px;
+  border-radius:12px;
+  box-shadow:0 0 20px rgba(255,255,0,0.2);
 }
 
-h1 {
-  text-align: center;
-  color: #ffd000;
-  margin-bottom: 5px;
+h1{
+  text-align:center;
+  color:#ffd000;
 }
 
-.sub {
-  text-align: center;
-  font-size: 12px;
-  color: #aaa;
+.subtitle{
+  text-align:center;
+  color:#aaa;
+  font-size:14px;
 }
 
-.input-box {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
+#googleBtn{
+  width:100%;
+  padding:12px;
+  background:#ffd000;
+  color:black;
+  border:none;
+  border-radius:8px;
+  font-weight:bold;
 }
 
-input {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #333;
-  border-radius: 6px;
-  background: #111;
-  color: white;
+.input-box{
+  display:flex;
+  gap:10px;
+  margin-top:20px;
 }
 
-button {
-  padding: 10px;
-  border: none;
-  border-radius: 6px;
-  background: #ffd000;
-  color: black;
-  font-weight: bold;
-  cursor: pointer;
+input{
+  flex:1;
+  padding:10px;
+  border:none;
+  border-radius:6px;
 }
 
-.card {
-  background: #111;
-  margin-top: 15px;
-  padding: 12px;
-  border-radius: 8px;
-  border-left: 4px solid #ffd000;
+button{
+  background:#ffd000;
+  color:black;
+  border:none;
+  padding:10px;
+  border-radius:6px;
+  font-weight:bold;
 }
 
-.actions {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 10px;
+.card{
+  background:#1b1b1b;
+  margin-top:15px;
+  padding:12px;
+  border-left:4px solid #ffd000;
+  border-radius:8px;
 }
 
-.small-btn {
-  background: #ffd000;
-  border: none;
-  padding: 5px 8px;
-  font-size: 12px;
-  cursor: pointer;
+.actions{
+  display:flex;
+  justify-content:space-between;
+  margin-top:10px;
+}
+
+.actions button{
+  flex:1;
+  margin:3px;
+}
+
+.user-info{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+#userPhoto{
+  width:70px;
+  height:70px;
+  border-radius:50%;
+  border:3px solid #ffd000;
+}
+
+.logout-btn{
+  width:100%;
+  margin-top:20px;
 }
