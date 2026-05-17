@@ -107,18 +107,22 @@ function loadPromises(){
 
       snapshot.forEach(doc => {
 
-        const data = doc.data();
+  const data = doc.data();
 
-        total++;
+  let streak = data.streak || 0;
 
-        completed += data.completed || 0;
+  // 🔥 BREAK STREAK IF MISSED DAY
+  if (isMissedDay(data.lastCompletedDate)) {
+    streak = 0;
+  }
 
-        list.innerHTML += `
-          <div class="card">
+  total++;
 
-            <h3>${data.text}</h3>
-
-            <p>🔥 Streak: ${data.streak}</p>
+  list.innerHTML += `
+    <div class="card">
+      <h3>${data.text}</h3>
+      <p>🔥 Streak: ${streak}</p>
+  
 
             <div class="actions">
 
@@ -189,6 +193,20 @@ function markDone(id, streak, lastDate) {
       lastCompletedDate: today
     });
 
+}
+
+function isMissedDay(lastDate) {
+
+  if (!lastDate) return false;
+
+  const today = new Date();
+  const last = new Date(lastDate);
+
+  const diff = Math.floor(
+    (today - last) / (1000 * 60 * 60 * 24)
+  );
+
+  return diff > 1;
 }
 
 // DELETE
