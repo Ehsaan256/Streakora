@@ -1,41 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Streakora</title>
-
   <link rel="stylesheet" href="style.css">
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
   <div class="container">
     <h1>⚡ STREAKORA</h1>
-
-    <p class="subtitle">
-      Keep the promises you make to yourself.
-    </p>
+    <p class="sub">Your promises define your future.</p>
 
     <div class="input-box">
-      <input
-        type="text"
-        id="promiseInput"
-        placeholder="Enter your promise..."
-      >
-
-      <button onclick="addPromise()">
-        Add
-      </button>
+      <input type="text" id="promiseInput" placeholder="Enter your promise...">
+      <button onclick="addPromise()">Add</button>
     </div>
 
     <div id="list"></div>
   </div>
 
-  <script src="app.js"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
 
+  <script src="app.js"></script>
 </body>
 </html>
