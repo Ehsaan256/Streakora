@@ -9,63 +9,61 @@ const firebaseConfig = {
   measurementId: "G-5X19LQVYMM"
 };
 
-// INIT
 firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
 const db = firebase.firestore();
-
 const provider = new firebase.auth.GoogleAuthProvider();
 
-const googleBtn = document.getElementById("googleBtn");
-
+// ===================== UI =====================
 const loginBox = document.getElementById("loginBox");
-
 const app = document.getElementById("app");
-
 const list = document.getElementById("list");
-
 const scoreCard = document.getElementById("scoreCard");
 
 let currentUser = null;
 
-// GOOGLE LOGIN
-googleBtn.addEventListener("click", () => {
-
+// ===================== LOGIN =====================
+document.getElementById("googleBtn").onclick = () => {
   auth.signInWithPopup(provider);
+};
 
-});
-
-// AUTH STATE
 auth.onAuthStateChanged(user => {
-
-  if(user){
-
-    currentUser = user;
-
-    loginBox.style.display = "none";
-
-    app.style.display = "block";
-
-    document.getElementById("userName").innerText =
-      user.displayName;
-
-    document.getElementById("userPhoto").src =
-      user.photoURL;
-
-    loadPromises();
-
-  }else{
-
+  if (!user) {
     loginBox.style.display = "block";
-
     app.style.display = "none";
-
+    return;
   }
 
+  currentUser = user;
+
+  loginBox.style.display = "none";
+  app.style.display = "block";
+
+  document.getElementById("userName").innerText = user.displayName;
+  document.getElementById("userPhoto").src = user.photoURL;
+
+  loadPromises();
+  startNotifications();
 });
 
-// ADD PROMISE
+// ===================== DATE HELPERS =====================
+function getToday() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function getYesterday() {
+  let d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split("T")[0];
+}
+
+function daysDiff(date) {
+  if (!date) return 999;
+  return Math.floor((new Date() - new Date(date)) / 86400000);
+}
+
+// ===================== ADD PROMISE =====================
 function addPromise() {
 
   const input = document.getElementById("promiseInput");
@@ -73,75 +71,69 @@ function addPromise() {
 
   if (!text) return;
 
-  const today = getToday();
-
   db.collection("users")
     .doc(currentUser.uid)
     .collection("promises")
     .add({
-      text: text,
+      text,
       streak: 0,
-      lastCompletedDate: "",   // important for streak logic
+      lastCompletedDate: "",
+      xp: 0,
       createdAt: Date.now()
     });
 
   input.value = "";
 }
 
-// LOAD PROMISES
-function loadPromises(){
+// ===================== LOAD =====================
+function loadPromises() {
 
   db.collection("users")
     .doc(currentUser.uid)
     .collection("promises")
     .onSnapshot(snapshot => {
 
-  if (!currentUser) return;
-
-  resetDailyIfNeeded(snapshot);
-
-  list.innerHTML = "";
+      list.innerHTML = "";
 
       let total = 0;
-      let completed = 0;
+      let doneToday = 0;
+      let xpTotal = 0;
+      let missed = 0;
 
       snapshot.forEach(doc => {
 
-  const data = doc.data();
+        const data = doc.data();
 
-  let streak = data.streak || 0;
+        let streak = data.streak || 0;
+        let last = data.lastCompletedDate || "";
 
-  // 🔥 BREAK STREAK IF MISSED DAY
-  if (isMissedDay(data.lastCompletedDate)) {
-    streak = 0;
-  }
+        // 🔥 MISS CHECK
+        if (daysDiff(last) > 1) {
+          streak = 0;
+        }
 
-  total++;
+        if (last === getToday()) doneToday++;
+        if (last !== getToday()) missed++;
 
-  list.innerHTML += `
-    <div class="card">
-      <h3>${data.text}</h3>
-      <p>🔥 Streak: ${streak}</p>
-  
+        xpTotal += data.xp || 0;
+        total++;
+
+        list.innerHTML += `
+          <div class="card">
+
+            <h3>${data.text}</h3>
+
+            <p>🔥 Streak: ${streak}</p>
+            <p>⚡ XP: ${data.xp || 0}</p>
 
             <div class="actions">
 
-              <button onclick="markDone(
-                '${doc.id}',
-                ${data.streak},
-                ${data.completed || 0}
-              )">
-
+              <button onclick="markDone('${doc.id}', ${data.streak || 0}, '${data.lastCompletedDate || ""}')">
                 ✅ Done
-
               </button>
 
-              <button onclick="deletePromise(
-                '${doc.id}'
-              )">
-
+              <button onclick="deletePromise('${doc.id}')">
                 ❌ Delete
-
               </button>
 
             </div>
@@ -150,39 +142,57 @@ function loadPromises(){
         `;
       });
 
-      // DISCIPLINE SCORE
-      let score = total === 0
-        ? 0
-        : Math.round((completed / total));
+      // =====================
+      // 📊 SCORE SYSTEM
+      // =====================
+      let score = total === 0 ? 0 : Math.round((doneToday / total) * 100);
+      let level = Math.floor(xpTotal / 100);
+
+      // =====================
+      // 🤖 AI COACH
+      // =====================
+      let ai = aiCoach(score, level);
 
       scoreCard.innerHTML = `
         <div class="card">
           <h3>⚡ Discipline Score</h3>
-          <h1>${score}</h1>
+          <h1>${score}%</h1>
+          <p>🏆 Level: ${level}</p>
+          <p>🔥 XP: ${xpTotal}</p>
+        </div>
+
+        <div class="card">
+          <h3>📊 Analytics</h3>
+          <p>✅ Done Today: ${doneToday}</p>
+          <p>❌ Pending: ${missed}</p>
+        </div>
+
+        <div class="card">
+          <h3>🤖 AI Coach</h3>
+          <p>${ai}</p>
         </div>
       `;
 
     });
-
 }
 
-// MARK DONE
+// ===================== MARK DONE =====================
 function markDone(id, streak, lastDate) {
 
   const today = getToday();
 
-  // already done today → stop
   if (lastDate === today) {
-    alert("Already completed today!");
+    alert("Already done today!");
     return;
   }
 
   let newStreak = 1;
 
-  // if user did it yesterday → continue streak
   if (lastDate === getYesterday()) {
     newStreak = streak + 1;
   }
+
+  let xpGain = 10 + newStreak * 2;
 
   db.collection("users")
     .doc(currentUser.uid)
@@ -190,47 +200,41 @@ function markDone(id, streak, lastDate) {
     .doc(id)
     .update({
       streak: newStreak,
-      lastCompletedDate: today
+      lastCompletedDate: today,
+      xp: firebase.firestore.FieldValue.increment(xpGain)
     });
-
 }
 
-function isMissedDay(lastDate) {
-
-  if (!lastDate) return false;
-
-  const today = new Date();
-  const last = new Date(lastDate);
-
-  const diff = Math.floor(
-    (today - last) / (1000 * 60 * 60 * 24)
-  );
-
-  return diff > 1;
-}
-
-// DELETE
-function deletePromise(id){
-
+// ===================== DELETE =====================
+function deletePromise(id) {
   db.collection("users")
     .doc(currentUser.uid)
     .collection("promises")
     .doc(id)
     .delete();
-
 }
 
-// LOGOUT
-function logout(){
+// ===================== AI COACH =====================
+function aiCoach(score, level) {
 
+  if (score < 40) return "⚠️ You're off track. Start small today.";
+
+  if (level >= 10) return "🏆 Elite discipline. You are rare.";
+
+  if (score > 80) return "🔥 Strong consistency. Keep momentum.";
+
+  return "💡 Progress matters more than perfection.";
+}
+
+// ===================== NOTIFICATIONS (BASIC) =====================
+function startNotifications() {
+
+  setInterval(() => {
+    alert("⏰ Streak reminder: Don’t break your chain today!");
+  }, 1000 * 60 * 60 * 6); // every 6 hours
+}
+
+// ===================== LOGOUT =====================
+function logout() {
   auth.signOut();
-
-}
-function getToday() {
-  return new Date().toISOString().split("T")[0];
-}
-function getYesterday() {
-  let d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().split("T")[0];
 }
