@@ -96,7 +96,11 @@ function loadPromises(){
     .collection("promises")
     .onSnapshot(snapshot => {
 
-      list.innerHTML = "";
+  if (!currentUser) return;
+
+  resetDailyIfNeeded(snapshot);
+
+  list.innerHTML = "";
 
       let total = 0;
       let completed = 0;
