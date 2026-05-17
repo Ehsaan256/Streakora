@@ -9,66 +9,188 @@ const firebaseConfig = {
   measurementId: "G-5X19LQVYMM"
 };
 
-// Initialize Firebase
+// INIT
 firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
 const db = firebase.firestore();
+
+const provider = new firebase.auth.GoogleAuthProvider();
+
+const googleBtn = document.getElementById("googleBtn");
+
+const loginBox = document.getElementById("loginBox");
+
+const app = document.getElementById("app");
 
 const list = document.getElementById("list");
 
-// ➕ Add Promise
-function addPromise() {
-  const input = document.getElementById("promiseInput");
-  const text = input.value.trim();
+const scoreCard = document.getElementById("scoreCard");
 
-  if (!text) return;
+let currentUser = null;
 
-  db.collection("promises").add({
-    text: text,
-    streak: 0,
-    doneToday: false,
-    createdAt: Date.now()
-  });
+// GOOGLE LOGIN
+googleBtn.addEventListener("click", () => {
 
-  input.value = "";
-}
+  auth.signInWithPopup(provider);
 
-// 📥 Load Data
-db.collection("promises").onSnapshot(snapshot => {
-  list.innerHTML = "";
-
-  snapshot.forEach(doc => {
-    const p = doc.data();
-
-    list.innerHTML += `
-      <div class="card">
-        <div><b>${p.text}</b></div>
-        <div>🔥 Streak: ${p.streak}</div>
-
-        <div class="actions">
-          <button class="small-btn" onclick="markDone('${doc.id}', ${p.streak}, ${p.doneToday})">
-            Done
-          </button>
-
-          <button class="small-btn" onclick="deletePromise('${doc.id}')">
-            Delete
-          </button>
-        </div>
-      </div>
-    `;
-  });
 });
 
-// ✅ Mark Done
-function markDone(id, streak, doneToday) {
-  if (doneToday) return;
+// AUTH STATE
+auth.onAuthStateChanged(user => {
 
-  db.collection("promises").doc(id).update({
-    streak: streak + 1,
-    doneToday: true
-  });
+  if(user){
+
+    currentUser = user;
+
+    loginBox.style.display = "none";
+
+    app.style.display = "block";
+
+    document.getElementById("userName").innerText =
+      user.displayName;
+
+    document.getElementById("userPhoto").src =
+      user.photoURL;
+
+    loadPromises();
+
+  }else{
+
+    loginBox.style.display = "block";
+
+    app.style.display = "none";
+
+  }
+
+});
+
+// ADD PROMISE
+function addPromise(){
+
+  const input =
+    document.getElementById("promiseInput");
+
+  const text = input.value.trim();
+
+  if(!text) return;
+
+  db.collection("users")
+    .doc(currentUser.uid)
+    .collection("promises")
+    .add({
+
+      text:text,
+      streak:0,
+      completed:0,
+      createdAt:Date.now()
+
+    });
+
+  input.value="";
+
 }
 
-// ❌ Delete
-function deletePromise(id) {
-  db.collection("promises").doc(id).delete();
+// LOAD PROMISES
+function loadPromises(){
+
+  db.collection("users")
+    .doc(currentUser.uid)
+    .collection("promises")
+    .onSnapshot(snapshot => {
+
+      list.innerHTML = "";
+
+      let total = 0;
+      let completed = 0;
+
+      snapshot.forEach(doc => {
+
+        const data = doc.data();
+
+        total++;
+
+        completed += data.completed || 0;
+
+        list.innerHTML += `
+          <div class="card">
+
+            <h3>${data.text}</h3>
+
+            <p>🔥 Streak: ${data.streak}</p>
+
+            <div class="actions">
+
+              <button onclick="markDone(
+                '${doc.id}',
+                ${data.streak},
+                ${data.completed || 0}
+              )">
+
+                ✅ Done
+
+              </button>
+
+              <button onclick="deletePromise(
+                '${doc.id}'
+              )">
+
+                ❌ Delete
+
+              </button>
+
+            </div>
+
+          </div>
+        `;
+      });
+
+      // DISCIPLINE SCORE
+      let score = total === 0
+        ? 0
+        : Math.round((completed / total));
+
+      scoreCard.innerHTML = `
+        <div class="card">
+          <h3>⚡ Discipline Score</h3>
+          <h1>${score}</h1>
+        </div>
+      `;
+
+    });
+
+}
+
+// MARK DONE
+function markDone(id, streak, completed){
+
+  db.collection("users")
+    .doc(currentUser.uid)
+    .collection("promises")
+    .doc(id)
+    .update({
+
+      streak: streak + 1,
+      completed: completed + 1
+
+    });
+
+}
+
+// DELETE
+function deletePromise(id){
+
+  db.collection("users")
+    .doc(currentUser.uid)
+    .collection("promises")
+    .doc(id)
+    .delete();
+
+}
+
+// LOGOUT
+function logout(){
+
+  auth.signOut();
+
 }
