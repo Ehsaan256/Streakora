@@ -194,3 +194,6 @@ function logout(){
   auth.signOut();
 
 }
+function getToday() {
+  return new Date().toISOString().split("T")[0];
+}
