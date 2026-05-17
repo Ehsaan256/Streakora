@@ -162,17 +162,30 @@ function loadPromises(){
 }
 
 // MARK DONE
-function markDone(id, streak, completed){
+function markDone(id, streak, lastDate) {
+
+  const today = getToday();
+
+  // already done today → stop
+  if (lastDate === today) {
+    alert("Already completed today!");
+    return;
+  }
+
+  let newStreak = 1;
+
+  // if user did it yesterday → continue streak
+  if (lastDate === getYesterday()) {
+    newStreak = streak + 1;
+  }
 
   db.collection("users")
     .doc(currentUser.uid)
     .collection("promises")
     .doc(id)
     .update({
-
-      streak: streak + 1,
-      completed: completed + 1
-
+      streak: newStreak,
+      lastCompletedDate: today
     });
 
 }
@@ -196,4 +209,9 @@ function logout(){
 }
 function getToday() {
   return new Date().toISOString().split("T")[0];
+}
+function getYesterday() {
+  let d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split("T")[0];
 }
