@@ -30,6 +30,7 @@ document.getElementById("googleBtn").onclick = () => {
   auth.signInWithPopup(provider);
 };
 
+
 // ===================== GUEST MODE =====================
 document.getElementById("guestBtn").onclick = () => {
 
@@ -54,7 +55,6 @@ document.getElementById("guestBtn").onclick = () => {
   loadGuestPromises();
   startNotifications();
 };
-
 // ===================== AUTH STATE =====================
 auth.onAuthStateChanged(user => {
 
