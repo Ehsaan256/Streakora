@@ -3,16 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>Streakora</title>
-
   <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 
@@ -21,56 +18,41 @@
   <div class="container">
 
     <h1>⚡ STREAKORA</h1>
-
-    <p class="subtitle">
-      Keep the promises you make to yourself.
-    </p>
+    <p class="subtitle">Keep the promises you make to yourself.</p>
 
     <!-- LOGIN -->
-    <button id="googleBtn">
-  Sign in with Google
-</button>
     <div id="loginBox">
-<button id="guestBtn">
-  Continue as Guest
-</button>
+      <button id="googleBtn">🔐 Continue with Google</button>
+      <button id="guestBtn">👤 Continue as Guest</button>
     </div>
 
     <!-- APP -->
     <div id="app" style="display:none;">
 
       <div class="user-info">
-        <img id="userPhoto">
+        <img id="userPhoto" alt="User Photo">
         <h3 id="userName"></h3>
       </div>
 
       <div class="input-box">
-
         <input
           type="text"
           id="promiseInput"
           placeholder="Enter your promise..."
+          onkeydown="if(event.key==='Enter') addPromise()"
         >
-
-        <button onclick="addPromise()">
-          Add
-        </button>
-
+        <button onclick="addPromise()">Add</button>
       </div>
 
       <div id="scoreCard"></div>
-
       <div id="list"></div>
 
-      <button onclick="logout()" class="logout-btn">
-        Logout
-      </button>
+      <button onclick="logout()" class="logout-btn">🚪 Logout</button>
 
     </div>
 
   </div>
 
   <script src="app.js"></script>
-
 </body>
 </html>
