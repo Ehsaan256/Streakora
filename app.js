@@ -9,6 +9,7 @@ const firebaseConfig = {
   measurementId: "G-5X19LQVYMM"
 };
 
+// ===================== FIREBASE =====================
 firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
@@ -22,29 +23,63 @@ const list = document.getElementById("list");
 const scoreCard = document.getElementById("scoreCard");
 
 let currentUser = null;
+let isGuest = false;
 
 // ===================== LOGIN =====================
 document.getElementById("googleBtn").onclick = () => {
   auth.signInWithPopup(provider);
 };
 
+// ===================== GUEST MODE =====================
+document.getElementById("guestBtn").onclick = () => {
+
+  isGuest = true;
+
+  currentUser = {
+    uid: "guest_user",
+    displayName: "Guest User",
+    photoURL:
+      "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+  };
+
+  loginBox.style.display = "none";
+  app.style.display = "block";
+
+  document.getElementById("userName").innerText =
+    "Guest User 👋";
+
+  document.getElementById("userPhoto").src =
+    currentUser.photoURL;
+
+  loadGuestPromises();
+  startNotifications();
+};
+
+// ===================== AUTH STATE =====================
 auth.onAuthStateChanged(user => {
-  if (!user) {
+
+  if (!user && !isGuest) {
     loginBox.style.display = "block";
     app.style.display = "none";
     return;
   }
 
-  currentUser = user;
+  if (user) {
 
-  loginBox.style.display = "none";
-  app.style.display = "block";
+    currentUser = user;
 
-  document.getElementById("userName").innerText = user.displayName;
-  document.getElementById("userPhoto").src = user.photoURL;
+    loginBox.style.display = "none";
+    app.style.display = "block";
 
-  loadPromises();
-  startNotifications();
+    document.getElementById("userName").innerText =
+      user.displayName;
+
+    document.getElementById("userPhoto").src =
+      user.photoURL;
+
+    loadPromises();
+    startNotifications();
+  }
 });
 
 // ===================== DATE HELPERS =====================
@@ -60,7 +95,10 @@ function getYesterday() {
 
 function daysDiff(date) {
   if (!date) return 999;
-  return Math.floor((new Date() - new Date(date)) / 86400000);
+
+  return Math.floor(
+    (new Date() - new Date(date)) / 86400000
+  );
 }
 
 // ===================== ADD PROMISE =====================
@@ -71,6 +109,36 @@ function addPromise() {
 
   if (!text) return;
 
+  // =====================
+  // GUEST STORAGE
+  // =====================
+  if (isGuest) {
+
+    let guestData =
+      JSON.parse(localStorage.getItem("guestPromises")) || [];
+
+    guestData.push({
+      text,
+      streak: 0,
+      lastCompletedDate: "",
+      xp: 0,
+      createdAt: Date.now()
+    });
+
+    localStorage.setItem(
+      "guestPromises",
+      JSON.stringify(guestData)
+    );
+
+    input.value = "";
+
+    loadGuestPromises();
+    return;
+  }
+
+  // =====================
+  // FIREBASE STORAGE
+  // =====================
   db.collection("users")
     .doc(currentUser.uid)
     .collection("promises")
@@ -85,156 +153,135 @@ function addPromise() {
   input.value = "";
 }
 
-// ===================== LOAD =====================
-function loadPromises() {
+// ===================== GUEST LOAD =====================
+function loadGuestPromises() {
 
-  db.collection("users")
-    .doc(currentUser.uid)
-    .collection("promises")
-    .onSnapshot(snapshot => {
+  list.innerHTML = "";
 
-      list.innerHTML = "";
+  let guestData =
+    JSON.parse(localStorage.getItem("guestPromises")) || [];
 
-      let total = 0;
-      let doneToday = 0;
-      let xpTotal = 0;
-      let missed = 0;
+  let total = 0;
+  let doneToday = 0;
+  let xpTotal = 0;
+  let missed = 0;
 
-      snapshot.forEach(doc => {
+  guestData.forEach((data, index) => {
 
-        const data = doc.data();
+    let streak = data.streak || 0;
+    let last = data.lastCompletedDate || "";
 
-        let streak = data.streak || 0;
-        let last = data.lastCompletedDate || "";
+    if (daysDiff(last) > 1) {
+      streak = 0;
+    }
 
-        // 🔥 MISS CHECK
-        if (daysDiff(last) > 1) {
-          streak = 0;
-        }
+    if (last === getToday()) doneToday++;
+    if (last !== getToday()) missed++;
 
-        if (last === getToday()) doneToday++;
-        if (last !== getToday()) missed++;
+    xpTotal += data.xp || 0;
+    total++;
 
-        xpTotal += data.xp || 0;
-        total++;
+    list.innerHTML += `
+      <div class="card">
 
-        list.innerHTML += `
-          <div class="card">
+        <h3>${data.text}</h3>
 
-            <h3>${data.text}</h3>
+        <p>🔥 Streak: ${streak}</p>
+        <p>⚡ XP: ${data.xp || 0}</p>
 
-            <p>🔥 Streak: ${streak}</p>
-            <p>⚡ XP: ${data.xp || 0}</p>
+        <div class="actions">
 
-            <div class="actions">
+          <button onclick="guestDone(${index})">
+            ✅ Done
+          </button>
 
-              <button onclick="markDone('${doc.id}', ${data.streak || 0}, '${data.lastCompletedDate || ""}')">
-                ✅ Done
-              </button>
+          <button onclick="guestDelete(${index})">
+            ❌ Delete
+          </button>
 
-              <button onclick="deletePromise('${doc.id}')">
-                ❌ Delete
-              </button>
-
-            </div>
-
-          </div>
-        `;
-      });
-
-      // =====================
-      // 📊 SCORE SYSTEM
-      // =====================
-      let score = total === 0 ? 0 : Math.round((doneToday / total) * 100);
-      let level = Math.floor(xpTotal / 100);
-
-      // =====================
-      // 🤖 AI COACH
-      // =====================
-      let ai = aiCoach(score, level);
-
-      scoreCard.innerHTML = `
-        <div class="card">
-          <h3>⚡ Discipline Score</h3>
-          <h1>${score}%</h1>
-          <p>🏆 Level: ${level}</p>
-          <p>🔥 XP: ${xpTotal}</p>
         </div>
 
-        <div class="card">
-          <h3>📊 Analytics</h3>
-          <p>✅ Done Today: ${doneToday}</p>
-          <p>❌ Pending: ${missed}</p>
-        </div>
+      </div>
+    `;
+  });
 
-        <div class="card">
-          <h3>🤖 AI Coach</h3>
-          <p>${ai}</p>
-        </div>
-      `;
+  let score =
+    total === 0
+      ? 0
+      : Math.round((doneToday / total) * 100);
 
-    });
+  let level = Math.floor(xpTotal / 100);
+
+  let ai = aiCoach(score, level);
+
+  scoreCard.innerHTML = `
+    <div class="card">
+      <h3>⚡ Discipline Score</h3>
+      <h1>${score}%</h1>
+      <p>🏆 Level: ${level}</p>
+      <p>🔥 XP: ${xpTotal}</p>
+    </div>
+
+    <div class="card">
+      <h3>📊 Analytics</h3>
+      <p>✅ Done Today: ${doneToday}</p>
+      <p>❌ Pending: ${missed}</p>
+    </div>
+
+    <div class="card">
+      <h3>🤖 AI Coach</h3>
+      <p>${ai}</p>
+    </div>
+  `;
 }
 
-// ===================== MARK DONE =====================
-function markDone(id, streak, lastDate) {
+// ===================== GUEST DONE =====================
+function guestDone(index) {
+
+  let data =
+    JSON.parse(localStorage.getItem("guestPromises")) || [];
 
   const today = getToday();
 
-  if (lastDate === today) {
+  if (data[index].lastCompletedDate === today) {
     alert("Already done today!");
     return;
   }
 
   let newStreak = 1;
 
-  if (lastDate === getYesterday()) {
-    newStreak = streak + 1;
+  if (
+    data[index].lastCompletedDate === getYesterday()
+  ) {
+    newStreak = data[index].streak + 1;
   }
 
   let xpGain = 10 + newStreak * 2;
 
-  db.collection("users")
-    .doc(currentUser.uid)
-    .collection("promises")
-    .doc(id)
-    .update({
-      streak: newStreak,
-      lastCompletedDate: today,
-      xp: firebase.firestore.FieldValue.increment(xpGain)
-    });
+  data[index].streak = newStreak;
+  data[index].lastCompletedDate = today;
+  data[index].xp += xpGain;
+
+  localStorage.setItem(
+    "guestPromises",
+    JSON.stringify(data)
+  );
+
+  loadGuestPromises();
 }
 
-// ===================== DELETE =====================
-function deletePromise(id) {
-  db.collection("users")
-    .doc(currentUser.uid)
-    .collection("promises")
-    .doc(id)
-    .delete();
-}
+// ===================== GUEST DELETE =====================
+function guestDelete(index) {
 
-// ===================== AI COACH =====================
-function aiCoach(score, level) {
+  let data =
+    JSON.parse(localStorage.getItem("guestPromises")) || [];
 
-  if (score < 40) return "⚠️ You're off track. Start small today.";
+  data.splice(index, 1);
 
-  if (level >= 10) return "🏆 Elite discipline. You are rare.";
+  localStorage.setItem(
+    "guestPromises",
+    JSON.stringify(data)
+  );
 
-  if (score > 80) return "🔥 Strong consistency. Keep momentum.";
-
-  return "💡 Progress matters more than perfection.";
-}
-
-// ===================== NOTIFICATIONS (BASIC) =====================
-function startNotifications() {
-
-  setInterval(() => {
-    alert("⏰ Streak reminder: Don’t break your chain today!");
-  }, 1000 * 60 * 60 * 6); // every 6 hours
-}
-
-// ===================== LOGOUT =====================
-function logout() {
-  auth.signOut();
-}
+  loadGuestPromises();
+    }
