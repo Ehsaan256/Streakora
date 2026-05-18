@@ -35,6 +35,7 @@ document.getElementById("googleBtn").onclick = () => {
 document.getElementById("guestBtn").onclick = () => {
 
   isGuest = true;
+  let isGuest = false;
 
   currentUser = {
     uid: "guest_user",
